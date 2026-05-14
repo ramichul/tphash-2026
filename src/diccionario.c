@@ -196,6 +196,8 @@ diccionario_t *diccionario_insertar(diccionario_t *d, const char *clave,
 
 	struct diccionario_par *par_nuevo =
 		calloc(1, sizeof(struct diccionario_par));
+	if (par_nuevo == NULL)
+		return NULL;
 	par_nuevo->clave = calloc(strlen(clave) + 1, sizeof(char));
 	if (par_nuevo->clave == NULL) {
 		free(par_nuevo);

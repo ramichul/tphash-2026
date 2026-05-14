@@ -30,9 +30,9 @@
     - [Complejidades temporales](#complejidades-temporales)
     - [Flujo del programa de prueba implementado](#flujo-del-programa-de-prueba-implementado)
   - [3. Respuestas a las preguntas teóricas](#3-respuestas-a-las-preguntas-teóricas)
-      - [¿Qué es un diccionario? Explicar 3 formas diferentes de implementar un diccionario (Tabla de Hash cuenta como 1 sola implementación posible).](#qué-es-un-diccionario-explicar-3-formas-diferentes-de-implementar-un-diccionario-tabla-de-hash-cuenta-como-1-sola-implementación-posible)
+      - [¿Qué es un diccionario? Explicar 3 formas diferentes de implementar un diccionario.](#qué-es-un-diccionario-explicar-3-formas-diferentes-de-implementar-un-diccionario)
       - [¿Qué es una función de Hash? ¿Qué características debe tener para nuestro problema en particular?](#qué-es-una-función-de-hash-qué-características-debe-tener-para-nuestro-problema-en-particular)
-      - [¿Qué es una tabla de Hash? Explicar los diferentes métodos de resolución de colisiones vistos (encadenamiento, probing, etc).](#qué-es-una-tabla-de-hash-explicar-los-diferentes-métodos-de-resolución-de-colisiones-vistos-encadenamiento-probing-etc)
+      - [¿Qué es una tabla de Hash? Explicar los diferentes métodos de resolución de colisiones vistos.](#qué-es-una-tabla-de-hash-explicar-los-diferentes-métodos-de-resolución-de-colisiones-vistos)
       - [Explique por qué es importante el tamaño de la tabla (tanto para tablas abiertas como cerradas). Dado que en una tabla abierta se pueden encadenar colisiones sin importar el tamaño de la tabla, ¿Realmente importa el tamaño?](#explique-por-qué-es-importante-el-tamaño-de-la-tabla-tanto-para-tablas-abiertas-como-cerradas-dado-que-en-una-tabla-abierta-se-pueden-encadenar-colisiones-sin-importar-el-tamaño-de-la-tabla-realmente-importa-el-tamaño)
   - [4. Aclaraciones sobre la implementación y el *TDA* auxiliario](#4-aclaraciones-sobre-la-implementación-y-el-tda-auxiliario)
 
@@ -128,7 +128,7 @@ Se toma a $n$ como la cantidad de pares y $m$ como la lóngitud de las claves.
 |      `diccionario_destruir_todo()`       |  $O(n²\cdot f(n))$ |Además de `lista_destruir()`, se llama a `destructor()` $n$ veces. Se toma a $f(n)$ como la función que acota la complejidad temporal de esta última.|
 |      Buscar un Pokémon por nombre       |  $O(n\cdot m)$ |Además de `imprimir_pokemon()` que es $O(1)$, Se utiliza `diccionario_obtener()` para realizar esta tarea.|
 |      Buscar Pokémon por tipo       |  $O(n)$ |Además de `imprimir_pokemon()`, se utiliza `diccionario_con_cada_elemento()` con la función $O(1)$ `mostrar_pokemon_por_tipo()` para esta tarea.|
-&nbsp;
+
 
 ### Flujo del programa de prueba implementado
 Se implementó un programa de busqueda de Pokémon con ayuda de la estructura de Pokédex (detallada en [este directorio](https://github.com/ramichul/tp1-2026)) para comprobar el buen funcionamiento y las capacidades del diccionario. Su funcionamiento es el siguiente (dando por sentado que el programa se abortará cuando haya sucedido un error):
@@ -143,7 +143,23 @@ Se implementó un programa de busqueda de Pokémon con ayuda de la estructura de
 &nbsp;
 
 ## 3. Respuestas a las preguntas teóricas
-#### ¿Qué es un diccionario? Explicar 3 formas diferentes de implementar un diccionario (Tabla de Hash cuenta como 1 sola implementación posible).
+#### ¿Qué es un diccionario? Explicar 3 formas diferentes de implementar un diccionario.
+Un diccionario es una estructura que almacena pares clave-valor. Gracias a esta característica, los valores almacenados se pueden acceder rápidamente buscando por su clave asociada en vez de ir elemento por elemento.
+Existen varias formas de implementar un diccionario:
+- Utilizando una Tabla de Hash: Utiliza una función de Hash, que recibe una clave y la transforma en un índice. Esta puede ser tanto abierta (de direccionamiento cerrado) como cerrada (de direccionamiento abierto):
+  - Tabla de Hash abierta: Utiliza una estructura auxiliar como "contenedor" para cada índice de la tabla. Se considera de "direccionamiento cerrado" porque se garantiza que el elemento se insertará en la posición indicada por la función de Hash al poderse almacenar varios elementos por posición.
+  - Tabla de Hash cerrada: Almacena los elementos directamente dentro de la tabla misma. El direccionamiento en este caso es "abierto" ya que no necesariamente siempre coinciden la posición final y la indicada por la función de Hash. Como no se puede insertar un elemento en una posición ya ocupada al colisionar, se debe encontrar una alternativa.
+
+- Mediante una lista enlazada: Se pueden almacenar los pares directamente dentro de una lista enlazada, y buscar linealmente cada vez que se necesite operar con o acceder a una clave.
+
+- Mediante un ABB: Se puede utilizar un ABB para almacenar los pares, ordenando las claves para optimizar la búsqueda.
+
+Se pueden ver diagramas ilustrando ambas versiones de la primera forma en [este apartado del informe](#qué-es-una-tabla-de-hash-explicar-los-diferentes-métodos-de-resolución-de-colisiones-vistos). Se considera redundante ilustrar la segunda forma ya que es funcionalmente idéntico a un contenedor individual de una tabla de Hash abierta utilizando Listas.
+
+Se adjunta un diagrama mostrando un ejemplo de un diccionario implementado con un ABB, en donde las claves son enteros ordenados por mágnitud:
+
+![Diagrama de diccionario implementado con ABB](https://i.imgur.com/1PLhVrW.png)
+
 &nbsp;
 #### ¿Qué es una función de Hash? ¿Qué características debe tener para nuestro problema en particular?
 Una función de Hash es aquella que dada una clave, la convierte en un número asociado. Para que se pueda utilizar con las estructuras implementadas, se deben considerar varias cosas:
@@ -152,7 +168,7 @@ Una función de Hash es aquella que dada una clave, la convierte en un número a
 3. Se debe diseñar la función de manera que sea de alta varianza. Es decir, los Hashes resultantes deben estar bien dispersos sobre los valores de salida posibles. Esto resulta en menos colisiones, y por ende optimiza muchos aspectos del funcionamiento de la estructura.
 4. Como la función se estará ejecutando constantemente, esta debe ser lo más rápida y eficiente posible.
 &nbsp;
-#### ¿Qué es una tabla de Hash? Explicar los diferentes métodos de resolución de colisiones vistos (encadenamiento, probing, etc).
+#### ¿Qué es una tabla de Hash? Explicar los diferentes métodos de resolución de colisiones vistos.
 Una tabla de Hash es un *Tipo de Dato Abstracto (TDA)* que permite almacenar distintos elementos dentro de ella. Su principal característica es que permite hallar un valor rápidamente utilizando la función de Hash, que recibe una clave y la transforma en un índice. Los elementos (para un Hash cerrado) o contenedores (Hash abierto) de la tabla siguen un orden especificado, y el lugar de cada uno es numerado con un índice. 
 Es posible que dos elementos diferentes resulten tener el mismo Hash. Este evento se denomina colisión, y se puede afrontar de diferentes maneras según como esté implementado el *TDA*:
 - *Chaining* o Encadenamiento: Este método es exclusivo al Hash abierto, y es el que utiliza el *TDA* implementado. Se calcula el índice mediante la función de hash y el elemento se inserta en el contenedor ubicado en dicha posición. Cada índice de la tabla almacena todos los elementos cuyo hash produce ese mismo índice. Un ejemplo visual utilizando una lista enlazada como contenedor se vería de la siguiente forma:
