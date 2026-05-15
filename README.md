@@ -39,8 +39,8 @@
 ## 1. Instrucciones
 ### 1.1. Compilar el proyecto
 ```bash
-gcc -std=c99 -Wall -Wconversion -Wtype-limits -pedantic -Werror -O2 main.c src/*.c -o diccionario_pokemon
-gcc -std=c99 -Wall -Wconversion -Wtype-limits -pedantic -Werror -O2 src/*.c pruebas/pruebas_alumno.c -o pruebas_alumno
+make diccionario_pokemon
+make pruebas_diccionario
 ```
 
 ### 1.2. Ejecutar las pruebas
@@ -60,7 +60,7 @@ valgrind ./pruebas_alumno
 ## 2. Funcionamiento
 ### Estructuras
 #### Diccionario
-Es la estructura principal del proyecto, basada en una Tabla de Hash abierta. Utiliza un vector de varios *TDA* Lista (cuyo funcionamiento está detallado en [este directorio](https://github.com/ramichul/tplista-2026)) como contenedores para los diferentes pares. Cuenta con una capacidad específica o cantidad de contenedores que se va redimensionando a medida que el usuario inserta elementos en el diccionario. Este proceso es explicado en detalle más adelante.
+Es la estructura principal del proyecto, basada en una Tabla de Hash abierta. Utiliza un vector de varios *TDA* Lista (cuyo funcionamiento está detallado en [este directorio](https://github.com/ramichul/tplista-2026)) como contenedores para los diferentes pares. Cuenta con una capacidad específica o cantidad de contenedores que se va redimensionando a medida que el usuario inserta elementos en el diccionario. La función de Hash utilizada es una versión editada de *djb2*, hecha por Daniel J. Bernstein.
 #### Par
 Es el contenedor de datos que rellena las diferentes listas de la tabla. Está compuesto por una clave, la cual tiene asociada un valor.
 
@@ -78,11 +78,25 @@ Internamente, esta primitiva reserva memoria tanto para el diccionario como sus 
 #### Inserción
 **`diccionario_t *diccionario_insertar(diccionario_t *d, const char *clave, void *valor, void **valor_anterior)`**: Inserta un `valor` asociado a una `clave`. Si `valor_anterior` es un puntero válido, se almacena el valor previamente almacenado para la clave dada (o `NULL` en caso de que no existiera la clave). Devuelve el diccionario o `NULL` en caso de error.
 
+Funciona de la siguiente manera:
+1. Se inicializa el nuevo par a insertar, reservando memoria para el y para la copia de la clave que contiene. Se le asigna el valor pasado por parámetro.
+2. Se obtiene el Hash.
+3. Se busca dentro de contenedor indicado por el Hash para ver si la clave ya está presente dentro de él.
+4. Si lo está, se edita el valor anterior y se lo devuelve al usuario. Como no fue necesario utilizar un nuevo par, la memoria que esté ocupaba se libea antes de finalizar la función.
+5. En caso contrario, se inserta el nuevo par utilizando `lista_insertar()`.
+
+Esta función es especial en el sentido de que tiene delegada la responsabilidad de realizar un *Rehash*. Esto ocurre cuando la inserción causaría que la tabla esté ocupada a más del 75%. Funciona así:
+1. Se crea una nueva tabla (vector de listas) con el doble de capacidad que la anterior.
+2. Se insertan los elementos de la tabla anterior uno por uno en la nueva tabla, obteniendo un nuevo Hash para cada par en el proceso.
+3. Se eliminan los contenedores de la tabla anterior uno por uno.
+4. Se libera la memoria que ocupaban los contenedores anteriores, se reemplaza el puntero `d->contenedores` y se actualiza la capacidad.
+5. Se inserta el nuevo par en la tabla actualizada con normalidad.
+
 
 #### Eliminación
 **`void *diccionario_eliminar(diccionario_t *d, const char *clave)`**: Elimina una `clave` del diccionario. Devuelve el valor asociado a la clave eliminada o `NULL` en caso de error.
 
-Se obtiene el Hash a partir de la clave y se ejecuta `lista_buscar()` sobre el contenedor indicado para obtener su posición dentro del mismo. Se llama a `lista_eliminar_posicion()` con el índice obtenido. Se extraen los datos del par, guardando su valor en un puntero auxiliar antes de liberar la memoria que ocupaba. Se devuelve este puntero auxiliar.
+Se obtiene el Hash a partir de la clave y se ejecuta `lista_buscar()` sobre el contenedor indicado para obtener su posición dentro del mismo. Luego, se llama a `lista_eliminar_posicion()` con el índice obtenido. Se extraen los datos del par, guardando su valor en un puntero auxiliar antes de liberar la memoria que ocupaba. Se devuelve este puntero auxiliar.
 
 #### Busqueda
 **`void *diccionario_obtener(diccionario_t *d, const char *clave)`**: Devuelve el valor asociado con una `clave` en el diccionario o `NULL` en caso de error.
@@ -103,13 +117,15 @@ Internamente, se accede al campo `d->cantidad_elementos` y se lo devuelve al usu
 #### Iteración
 **`size_t diccionario_con_cada_elemento(diccionario_t *d, bool (*f)(struct diccionario_par *, void *), void *extra)`**: Invoca la función `f` con cada par almacenado en el diccionario. Si la función `f` devuelve `false`, finaliza la iteración. Devuelve la cantidad de elementos iterados.
 
-Se crea un iterador externo de Lista para cada contenedor del diccionario y se le va aplicando la función `f` a cada par dentro de él.
+Se crea un iterador externo de lista para cada contenedor del diccionario y se le va aplicando la función `f` a cada uno de sus pares.
 
 
 #### Destrucción
 **`void diccionario_destruir_todo(diccionario_t *d, void (*destructor)(void *))`**: Destruye el diccionario y aplica la función `destructor` a cada valor almacenado.
 
 **`void diccionario_destruir(diccionario_t *d)`**: Destruye el diccionario.
+
+Ambas de estas funcionalidades utilizan `lista_eliminar()` para liberar los nodos de las listas contenedoras uno por uno, liberando la memoria que ocupan los pares devueltos como paso intermedio.
 &nbsp;
 
 ### Complejidades temporales
@@ -118,12 +134,12 @@ Se toma a $n$ como la cantidad de pares y $m$ como la lóngitud de las claves.
 |      Función      |Complejidad|                 Justificación                  |
 |:-----------------:|:---------:|:----------------------------------------------:|
 |      `diccionario_crear()`       |  $O(n)$   |Además del diccionario, se debe reservar memoria para un total de $n$ contenedores.|
-|      `diccionario_insertar()`       |  $O(n\cdot m)$   |Al rehashear, se llama a la función `rehashear_elemento()` $n$ veces, que a su vez llama a `obtener_hash()` ($O(m)$) una vez.|
-|      `diccionario_eliminar()`       |  $O(n\cdot m)$ |Al buscar en la Lista, se utiliza la función $O(m)$, `strcmp()`, una vez para cada una de las $n$ claves.|
-|      `diccionario_obtener()`       |  $O(n\cdot m)$ |Al buscar en la Lista, se utiliza la función $O(m)$, `strcmp()`, una vez para cada una de las $n$ claves.|
-|      `diccionario_existe()`       |  $O(n\cdot m)$ |Al buscar en la Lista, se utiliza la función $O(m)$, `strcmp()`, una vez para cada una de las $n$ claves.|
+|      `diccionario_insertar()`       |  $O(n\cdot m)$   |Al rehashear, se llama a la función `rehashear_elemento()` $n$ veces, que a su vez llama a la función $O(m)$,`obtener_hash()`, una vez.|
+|      `diccionario_eliminar()`       |  $O(n\cdot m)$ |Al buscar en el contenedor, se utiliza la función $O(m)$, `strcmp()`, una vez para cada una de las $n$ claves.|
+|      `diccionario_obtener()`       |  $O(n\cdot m)$ |Al buscar en el contenedor, se utiliza la función $O(m)$, `strcmp()`, una vez para cada una de las $n$ claves.|
+|      `diccionario_existe()`       |  $O(n\cdot m)$ |Al buscar en el contenedor, se utiliza la función $O(m)$, `strcmp()`, una vez para cada una de las $n$ claves.|
 |      `diccionario_cantidad()`       |  $O(1)$ |Simplemente se devuelve el valor `cantidad_elementos`.|
-|      `diccionario_con_cada_elemento()`       |$O(n\cdot f(n))$|Se ejecutan varias primitivas del iterador externo de Lista (todas $O(1)$) $n$ veces. Se toma a $f(n)$ como la función que acota la complejidad temporal de `f`.|
+|      `diccionario_con_cada_elemento()`       |$O(n\cdot f(n))$|Se ejecutan varias primitivas del iterador externo de lista, todas $O(1)$, $n$ veces. Se toma a $f(n)$ como la función que acota la complejidad temporal de `f`.|
 |      `diccionario_destruir()`       |  $O(n²)$ |La función $O(n)$, `lista_destruir()`, se llama una vez por cada uno de los $n$ contenedores.|
 |      `diccionario_destruir_todo()`       |  $O(n²\cdot f(n))$ |Además de `lista_destruir()`, se llama a `destructor()` $n$ veces. Se toma a $f(n)$ como la función que acota la complejidad temporal de esta última.|
 |      Buscar un Pokémon por nombre       |  $O(n\cdot m)$ |Además de `imprimir_pokemon()` que es $O(1)$, Se utiliza `diccionario_obtener()` para realizar esta tarea.|
@@ -154,7 +170,7 @@ Existen varias formas de implementar un diccionario:
 
 - Mediante un ABB: Se puede utilizar un ABB para almacenar los pares, ordenando las claves para optimizar la búsqueda.
 
-Se pueden ver diagramas ilustrando ambas versiones de la primera forma en [este apartado del informe](#qué-es-una-tabla-de-hash-explicar-los-diferentes-métodos-de-resolución-de-colisiones-vistos). Se considera redundante ilustrar la segunda forma ya que es funcionalmente idéntico a un contenedor individual de una tabla de Hash abierta utilizando Listas.
+Se pueden ver diagramas ilustrando ambas versiones de la primera forma en [este apartado del informe](#qué-es-una-tabla-de-hash-explicar-los-diferentes-métodos-de-resolución-de-colisiones-vistos). La segunda forma se considera incluída en estos diagramas porque es funcionalmente idéntica a un contenedor de una Tabla de Hash abierta que utiliza listas.
 
 Se adjunta un diagrama mostrando un ejemplo de un diccionario implementado con un ABB, en donde las claves son enteros ordenados por mágnitud:
 
@@ -163,8 +179,8 @@ Se adjunta un diagrama mostrando un ejemplo de un diccionario implementado con u
 &nbsp;
 #### ¿Qué es una función de Hash? ¿Qué características debe tener para nuestro problema en particular?
 Una función de Hash es aquella que dada una clave, la convierte en un número asociado. Para que se pueda utilizar con las estructuras implementadas, se deben considerar varias cosas:
-1. Es necesario que la función devuelva un valor **fijo** para cada clave, asegurando que su comportamiento sea predecible.
-2. Como el valor que devuelve la función es interpretado como una posición en la tabla de Hash, este debe ser acotado para que no se accedan a indíces inválidos.
+1. Es necesario que la función devuelva un valor **fijo** para cada clave, asegurando que su comportamiento sea predecible. Si no lo fuese, sería imposible acceder a los datos consistentemente.
+2. Como el valor que devuelve la función es interpretado como una posición en la tabla de Hash, este debe ser menor que la capacidad actual para que no se accedan a indíces inválidos.
 3. Se debe diseñar la función de manera que sea de alta varianza. Es decir, los Hashes resultantes deben estar bien dispersos sobre los valores de salida posibles. Esto resulta en menos colisiones, y por ende optimiza muchos aspectos del funcionamiento de la estructura.
 4. Como la función se estará ejecutando constantemente, esta debe ser lo más rápida y eficiente posible.
 &nbsp;
@@ -190,11 +206,11 @@ El tamaño de la tabla es importante porque influye directamente en la cantidad 
 Más allá de que el Hash abierto teorícamente tenga capacidad infinita sin importar el tamaño de la tabla, su rendimiento será mucho menor mientras más colisiones haya porque se le darán más objetos para recorrer por contenedor. Eventualmente, muchas de las operaciones (que están pensadas para promediar un tiempo de ejecución constante) tienden a ser $O(n)$ y deja de ser eficiente el uso de la tabla comparado con un *TDA* más simple como la lista.
 &nbsp;
 ## 4. Aclaraciones sobre la implementación y el *TDA* auxiliario
-Por conflictos con las firmas de las primitivas de `lista.h`, se necesitó utilizar casteos explícitos para los valores calificados como constantes, específicamente los campos `clave` y `valor` de la estructura de par. Estos valores son casteados en cada instancia que se utilizan como parámetro en primitivas de Lista, cuando se necesita liberar la memoria que ocupan, y en varias otras ocasiones.
+Por conflictos con las firmas de las primitivas de `lista.h`, se necesitó utilizar casteos explícitos para los valores calificados como constantes, específicamente los campos `clave` y `valor` de la estructura de par. Estos valores son casteados en cada instancia que se utilizan como parámetro en primitivas de lista, cuando se necesita liberar la memoria que ocupan, y en varias otras ocasiones.
 
 En ningún momento realmente se modifican para el usuario (a menos que este lo pida) y simplemente es una cuestión de manipulación interna. En la práctica estos valores son y se aseguran constantes a lo largo del uso, por lo que se mantiene la integridad del contrato.
 
-Además, fue necesario hacer un pequeño cambio a `lista.c` para garantizar el funcionamiento de la función `diccionario_eliminar()`. La primitiva `lista_eliminar()` no contemplaba el caso de que `lista->fin` sea `NULL` antes de acceder a sus datos. Se agregó un condicional para tenerlo en cuenta y evitar errores de acceso inválido en la memoria.
+Además, fue necesario hacer un pequeño cambio a `lista.c` para garantizar el funcionamiento de `diccionario_eliminar()`. La primitiva `lista_eliminar()` no contemplaba el caso de que `lista->fin` sea `NULL` antes de acceder a sus datos. Se agrego un condicional al código para solucionarlo y evitar errores de acceso inválido en la memoria.
 
 
 

@@ -28,7 +28,7 @@ size_t obtener_hash(size_t capacidad, const char *clave)
 	char caracter_actual = clave[0];
 	int i = 1;
 
-	while ((caracter_actual != 0)) {
+	while ((caracter_actual != '\0')) {
 		hash = hash * FACTOR_AMPLIFICACION_HASH +
 		       (size_t)tolower(caracter_actual);
 		caracter_actual = clave[i];
