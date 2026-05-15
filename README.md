@@ -39,20 +39,20 @@
 ## 1. Instrucciones
 ### 1.1. Compilar el proyecto
 ```bash
-make diccionario_pokemon
+make diccionario
 make pruebas_diccionario
 ```
 
 ### 1.2. Ejecutar las pruebas
 ```bash
 ./diccionario [archivo] buscar nombre/tipo [parámetro a buscar]
-./pruebas_alumno
+./pruebas_diccionario
 ```
 
 ### 1.3. Ejecutar el programa con Valgrind
 ```bash
 valgrind ./diccionario [archivo] buscar nombre/tipo [parámetro a buscar]
-valgrind ./pruebas_alumno
+valgrind ./pruebas_diccionario
 ```
 
 &nbsp;
@@ -129,21 +129,23 @@ Ambas de estas funcionalidades utilizan `lista_eliminar()` para liberar los nodo
 &nbsp;
 
 ### Complejidades temporales
-Se toma a $n$ como la cantidad de pares y $m$ como la lóngitud de las claves.
+Las comparaciones entre claves se suponen constantes para estos análisis.
+
+Para las primitivas que además reciben otra función se toma a $f(n)$ como la expresión que acota su complejidad.
 
 |      Función      |Complejidad|                 Justificación                  |
 |:-----------------:|:---------:|:----------------------------------------------:|
 |      `diccionario_crear()`       |  $O(n)$   |Además del diccionario, se debe reservar memoria para un total de $n$ contenedores.|
-|      `diccionario_insertar()`       |  $O(n\cdot m)$   |Al rehashear, se llama a la función `rehashear_elemento()` $n$ veces, que a su vez llama a la función $O(m)$,`obtener_hash()`, una vez.|
-|      `diccionario_eliminar()`       |  $O(n\cdot m)$ |Al buscar en el contenedor, se utiliza la función $O(m)$, `strcmp()`, una vez para cada una de las $n$ claves.|
-|      `diccionario_obtener()`       |  $O(n\cdot m)$ |Al buscar en el contenedor, se utiliza la función $O(m)$, `strcmp()`, una vez para cada una de las $n$ claves.|
-|      `diccionario_existe()`       |  $O(n\cdot m)$ |Al buscar en el contenedor, se utiliza la función $O(m)$, `strcmp()`, una vez para cada una de las $n$ claves.|
+|      `diccionario_insertar()`       |  $O(n²)$   |Al rehashear, se deben destruir los $n$ contenedores antiguos utilizando la función lista_destruir() que es $O(n)$. Cabe notar que la inserción común es $O(n)$.|
+|      `diccionario_eliminar()`       |  $O(n)$ |Al buscar en el contenedor, se compara una vez para cada una de las $n$ claves.|
+|      `diccionario_obtener()`       |  $O(n)$ |Al buscar en el contenedor, se compara una vez para cada una de las $n$ claves.|
+|      `diccionario_existe()`       |  $O(n)$ |Al buscar en el contenedor, se compara una vez para cada una de las $n$ claves.|
 |      `diccionario_cantidad()`       |  $O(1)$ |Simplemente se devuelve el valor `cantidad_elementos`.|
-|      `diccionario_con_cada_elemento()`       |$O(n\cdot f(n))$|Se ejecutan varias primitivas del iterador externo de lista, todas $O(1)$, $n$ veces. Se toma a $f(n)$ como la función que acota la complejidad temporal de `f`.|
+|      `diccionario_con_cada_elemento()`       |$O(n\cdot f(n))$|Se ejecutan varias primitivas del iterador externo de lista, todas $O(1)$, $n$ veces.|
 |      `diccionario_destruir()`       |  $O(n²)$ |La función $O(n)$, `lista_destruir()`, se llama una vez por cada uno de los $n$ contenedores.|
-|      `diccionario_destruir_todo()`       |  $O(n²\cdot f(n))$ |Además de `lista_destruir()`, se llama a `destructor()` $n$ veces. Se toma a $f(n)$ como la función que acota la complejidad temporal de esta última.|
-|      Buscar un Pokémon por nombre       |  $O(n\cdot m)$ |Además de `imprimir_pokemon()` que es $O(1)$, Se utiliza `diccionario_obtener()` para realizar esta tarea.|
-|      Buscar Pokémon por tipo       |  $O(n)$ |Además de `imprimir_pokemon()`, se utiliza `diccionario_con_cada_elemento()` con la función $O(1)$ `mostrar_pokemon_por_tipo()` para esta tarea.|
+|      `diccionario_destruir_todo()`       |  $O(n²\cdot f(n))$ |Además de `lista_destruir()`, se llama a `destructor()` $n$ veces.|
+|      Buscar un Pokémon por nombre       |  $O(n)$ |Se utiliza `diccionario_obtener()` para realizar esta tarea.|
+|      Buscar Pokémon por tipo       |  $O(n)$ |Se utiliza `diccionario_con_cada_elemento()` con la función $O(1)$ `mostrar_pokemon_por_tipo()` para esta tarea.|
 
 
 ### Flujo del programa de prueba implementado

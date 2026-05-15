@@ -26,6 +26,17 @@ void diccionario_crear_crea_un_diccionario_con_capacidad_valida()
 	diccionario_destruir(diccionario);
 }
 
+void diccionario_crear_crea_un_diccionario_con_capacidad_debajo_del_minimo()
+{
+	diccionario_t *diccionario = diccionario_crear(1);
+
+	pa2m_afirmar(
+		diccionario != NULL,
+		"diccionario_crear() crea un diccionario sin problemas dada una capacidad debajo del mínimo");
+
+	diccionario_destruir(diccionario);
+}
+
 void diccionario_crear_crea_un_diccionario_vacio()
 {
 	diccionario_t *diccionario = diccionario_crear(10);
@@ -127,6 +138,20 @@ void diccionario_insertar_logra_insertar_y_el_elemento_esta_presente()
 	diccionario_destruir(diccionario);
 }
 
+void diccionario_insertar_logra_insertar_un_valor_nulo()
+{
+	diccionario_t *diccionario = diccionario_crear(10);
+	const char *clave = "Clave";
+	void *valor = NULL;
+	diccionario_t *resultado_insertar =
+		diccionario_insertar(diccionario, clave, valor, NULL);
+
+	pa2m_afirmar(resultado_insertar == diccionario,
+		     "diccionario_insertar() inserta un valor nulo con éxito");
+
+	diccionario_destruir(diccionario);
+}
+
 void diccionario_insertar_logra_insertar_y_cambia_cantidad()
 {
 	diccionario_t *diccionario = diccionario_crear(10);
@@ -213,7 +238,7 @@ void diccionario_insertar_devuelve_el_valor_anterior_correcto()
 
 void diccionario_insertar_inserta_claves_sobre_la_capacidad_inicial()
 {
-	diccionario_t *diccionario = diccionario_crear(3);
+	diccionario_t *diccionario = diccionario_crear(8);
 	const char *claves[] = { "Clave 1", "Clave 2", "Clave 3", "Clave 4",
 				 "Clave 5", "Clave 6", "Clave 7", "Clave 8",
 				 "Clave 9", "Clave 10" };
@@ -539,6 +564,7 @@ int main()
 {
 	pa2m_nuevo_grupo("Pruebas de funcionalidades básicas del diccionario");
 	diccionario_crear_crea_un_diccionario_con_capacidad_valida();
+	diccionario_crear_crea_un_diccionario_con_capacidad_debajo_del_minimo();
 	diccionario_crear_crea_un_diccionario_vacio();
 	diccionario_cantidad_toma_diccionario_nulo_como_vacio();
 	diccionario_cantidad_devuelve_0_con_diccionario_vacio();
@@ -550,6 +576,7 @@ int main()
 	diccionario_insertar_no_intenta_insertar_par_con_clave_nula();
 	diccionario_insertar_devuelve_puntero_al_mismo_diccionario();
 	diccionario_insertar_logra_insertar_y_el_elemento_esta_presente();
+	diccionario_insertar_logra_insertar_un_valor_nulo();
 	diccionario_insertar_logra_insertar_y_cambia_cantidad();
 	diccionario_insertar_sobreescribe_valor_y_no_cambia_cantidad();
 	diccionario_insertar_sobreescribe_valores();

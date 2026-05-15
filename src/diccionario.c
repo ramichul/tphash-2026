@@ -55,13 +55,30 @@ lista_t **crear_contenedores(size_t capacidad)
 	}
 	if (flag_fallo_memoria) {
 		for (int j = 0; j < i; j++) {
-			lista_destruir(contenedores[i]);
+			lista_destruir(contenedores[j]);
 		}
 		free(contenedores);
 		return NULL;
 	}
 
 	return contenedores;
+}
+
+struct diccionario_par *crear_par_nuevo(const char *clave, void *valor)
+{
+	struct diccionario_par *par_nuevo =
+		calloc(1, sizeof(struct diccionario_par));
+	if (par_nuevo == NULL)
+		return NULL;
+	par_nuevo->clave = calloc(strlen(clave) + 1, sizeof(char));
+	if (par_nuevo->clave == NULL) {
+		free(par_nuevo);
+		return NULL;
+	}
+	strcpy((char *)par_nuevo->clave, clave);
+	par_nuevo->valor = valor;
+
+	return par_nuevo;
 }
 
 diccionario_t *diccionario_crear(size_t capacidad_inicial)
@@ -194,17 +211,9 @@ diccionario_t *diccionario_insertar(diccionario_t *d, const char *clave,
 			return NULL;
 	}
 
-	struct diccionario_par *par_nuevo =
-		calloc(1, sizeof(struct diccionario_par));
+	struct diccionario_par *par_nuevo = crear_par_nuevo(clave, valor);
 	if (par_nuevo == NULL)
 		return NULL;
-	par_nuevo->clave = calloc(strlen(clave) + 1, sizeof(char));
-	if (par_nuevo->clave == NULL) {
-		free(par_nuevo);
-		return NULL;
-	}
-	strcpy((char *)par_nuevo->clave, clave);
-	par_nuevo->valor = valor;
 
 	size_t hash = obtener_hash(d->capacidad_actual, clave);
 
